@@ -29,7 +29,12 @@ function onLoad() {
       box_spacing: 30
     };
 
-    var config_state = {max_bombs: 2, power_up: 10, max_move: 30};
+    var config_state = {
+        max_bombs: 2, 
+        power_up: 10, 
+        max_move: 30, 
+        max_power: 10
+    };
     var game_state = {
       blocks: [],
       bombs: config_state.max_bombs,
@@ -43,14 +48,17 @@ function onLoad() {
          y < constants.height; y += constants.box_spacing) {
       for (let x = constants.box_spacing / 2; x < constants.width;
            x += constants.box_spacing) {
-        if (Math.random() < 0.25) {
+
+        let power = Math.round(Math.random()*config_state.max_power);
+
+        if (power == 0) {
           continue;
         }
         game_state.blocks.push({
           x: x,
           y: y,
           size: constants.box_size,
-          power: 1,
+          power: power,
           id: game_state.blocks.length,
           bomb: false,
           explosion: undefined
@@ -68,6 +76,12 @@ function onLoad() {
       ctx.fillRect(
           block.x - (block.size / 2), block.y - (block.size / 2), block.size,
           block.size);
+
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.font = '12px serif';
+        ctx.fillText(block.power, block.x, block.y);
+  
+
     };
 
     function drawPower() {
