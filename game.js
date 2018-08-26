@@ -23,28 +23,39 @@ var canvas = document.getElementById('tutorial');
 if (canvas.getContext) {
   var ctx = canvas.getContext('2d');
 
-  let blocks = [];
-  let max_bombs = 2;
-  let bombs = max_bombs;
-  let state = 'placing';
-  let power = 0;
-  let power_up = 10;
-  let placed = 0;
-  let score = 0;
-  let curr_move = 0;
-  let max_move = 30;
+  const constants = {
+      width: canvas.width,
+      height: canvas.width,
+      box_size: 20,
+      box_spacing: 30
+  };
 
-  for (let y = (15 + (5*30)); y < 300; y += 30 ) {
-    for (let x = 15; x < 300; x += 30 ) {
+  var config_state = {
+      max_bombs: 2,
+      power_up: 10,
+      max_move: 30
+  };
+  var game_state = {
+      blocks: [],
+      bombs: config_state.max_bombs,
+      state: 'placing',
+      power: 0,
+      score: 0,
+      curr_move: 0
+  };
+
+  for (let y = (constants.box_spacing/2 + (5*constants.box_spacing)); 
+  y < constants.height; y += constants.box_spacing ) {
+    for (let x = constants.box_spacing/2; x < constants.width; x += constants.box_spacing ) {
         if (Math.random() < 0.25) {
             continue;
         }
-        blocks.push({
+        game_state.blocks.push({
             x: x,
             y: y,
-            size: 20,
+            size: constants.box_size,
             power: 1,
-            id: blocks.length,
+            id: game_state.blocks.length,
             bomb: false,
             explosion: undefined
         });
@@ -66,7 +77,7 @@ if (canvas.getContext) {
       ctx.fillStyle = 'rgb(0, 0, 0)';
       ctx.strokeRect(100, 2, 50, 8);
       ctx.fillStyle = 'rgb(255, 0, 255)';
-      let length = power / power_up;
+      let length = game_state.power / config_state.power_up;
       length = Math.min(length, 1);
       ctx.fillRect(102, 4, 46 * length, 4);
       ctx.restore();
@@ -98,7 +109,7 @@ if (canvas.getContext) {
       });
 
       let changed = false;
-      blocks.forEach(function(bl) {
+      game_state.blocks.forEach(function(bl) {
           old_exp.forEach(function(ex) {
               let dist = Math.sqrt((bl.x - ex.x)*(bl.x - ex.x) + (bl.y - ex.y)*(bl.y - ex.y));
               if (dist < ex.power) {
@@ -120,23 +131,23 @@ if (canvas.getContext) {
                     }
                     bl.power = -1;
                   } else {
-                      power += blast;
-                      score += blast;
+                    game_state.power += blast;
+                    game_state.score += blast;
                   }
               }
           });
       });
-      blocks = blocks.filter(bl => bl.power >= 0);
+      game_state.blocks = game_state.blocks.filter(bl => bl.power >= 0);
       if (changed) {
         window.requestAnimationFrame(drawScene);
       }
   };
 
   function moveBlocks() {
-      blocks.forEach(function(b) {
+    game_state.blocks.forEach(function(b) {
           b.y -= 1;
       });
-      curr_move -= 1;
+      game_state.curr_move -= 1;
   }
 
   function addBlocks() {
@@ -144,12 +155,11 @@ if (canvas.getContext) {
         if (Math.random() < 0.25) {
             continue;
         }
-        blocks.push({
+        game_state.blocks.push({
             x: x,
             y: 315,
             size: 20,
             power: 1,
-            id: blocks.length,
             bomb: false,
             explosion: undefined
         });
@@ -157,56 +167,56 @@ if (canvas.getContext) {
   }
 
   function getTopBlock() {
-      return blocks.reduce((a, b) => Math.min(a, b.y), 300);
+      return game_state.blocks.reduce((a, b) => Math.min(a, b.y), 300);
   }
 
 
   function drawScene() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      blocks.forEach(drawBlock);
-      if (state == 'exploding') {
+      game_state.blocks.forEach(drawBlock);
+      if (game_state.state == 'exploding') {
         explosions.forEach(drawExplosion);
         updateExplosions();
         if (explosions.length == 0) {
-            state = 'destructing';
+            game_state.state = 'destructing';
         }
       }
 
-      if (state == 'initializing') {
-          state = 'placing';
+      if (game_state.state == 'initializing') {
+        game_state.state = 'placing';
           window.requestAnimationFrame(drawScene);
-      } else if (state == 'exploding') {
+      } else if (game_state.state == 'exploding') {
         window.requestAnimationFrame(drawScene);
-      } else if (state == 'destructing') {
-          state = 'moving';
+      } else if (game_state.state == 'destructing') {
+        game_state.state = 'moving';
           addBlocks();
-          if (power > power_up) {
-              power = 0;
-              power_up *= 1.1;
-              max_bombs += 1;
-              console.log('Powerup: ' + power_up);
+          if (game_state.power > config_state.power_up) {
+              game_state.power = 0;
+              config_state.power_up *= 1.1;
+              config_state.max_bombs += 1;
+              console.log('Powerup: ' + config_state.power_up);
           }
-          bombs = max_bombs;
-          curr_move = max_move;
+          game_state.bombs = config_state.max_bombs;
+          game_state.curr_move = config_state.max_move;
           window.requestAnimationFrame(drawScene);
-      } else if (state == 'moving') {
-          if (curr_move == 0) {
+      } else if (game_state.state == 'moving') {
+          if (game_state.curr_move == 0) {
               let top = getTopBlock();
               console.log(top);
               if (top <= 15) {
-                  state = 'dying';
+                game_state.state = 'dying';
               } else if (top >= (15 + 4*30)) {
                   addBlocks();
-                  curr_move = max_move;
+                  game_state.curr_move = config_state.max_move;;
               } else {
-                state = 'initializing';
+                game_state.state = 'initializing';
               }
-              console.log(state);
+              console.log(game_state.state);
           } else {
               moveBlocks();
           }
           window.requestAnimationFrame(drawScene);
-      } else if (state == 'dying') {
+      } else if (game_state.state == 'dying') {
         ctx.fillStyle = 'rgb(0, 0, 0)';
         ctx.font = '24px serif';
         ctx.fillText('Game Over', 10, 100);
@@ -215,18 +225,17 @@ if (canvas.getContext) {
 
       ctx.fillStyle = 'rgb(0, 0, 0)';
       ctx.font = '12px serif';
-      ctx.fillText('Bombs left: ' + bombs, 10, 10);
+      ctx.fillText('Bombs left: ' + game_state.bombs, 10, 10);
 //              ctx.fillText('Power: ' + power.toFixed(2), 100, 10);
       drawPower();
-      ctx.fillText('Placed: ' + placed, 10, 26);
-      ctx.fillText('Score: ' + score.toFixed(2), 100, 26);
+      ctx.fillText('Score: ' + game_state.score.toFixed(2), 100, 26);
   };
 
   drawScene();
 
   function findBlock(coords) {
-      for (let i = 0; i < blocks.length; i++) {
-          let bl = blocks[i];
+      for (let i = 0; i < game_state.blocks.length; i++) {
+          let bl = game_state.blocks[i];
           if (Math.abs(bl.x - coords.x) < (bl.size / 2) &&
               Math.abs(bl.y - coords.y) < (bl.size / 2)) {
             return bl;
@@ -236,18 +245,17 @@ if (canvas.getContext) {
   }
 
   canvas.addEventListener('click', function(event) { 
-      if (state != 'placing') {
+      if (game_state.state != 'placing') {
           return;
       } 
       coords = canvas.relMouseCoords(event);
       let block = findBlock(coords);
       if (block) {
-          bombs -= 1;
+          game_state.bombs -= 1;
           if (!block.bomb) {
-            placed += 1;
           }
-          if (block.bomb || bombs == 0) {
-            state = 'exploding';
+          if (block.bomb || game_state.bombs == 0) {
+            game_state.state = 'exploding';
             let explosion = {
               x: block.x,
               y: block.y,
@@ -256,8 +264,8 @@ if (canvas.getContext) {
             };
             block.explosion = explosion;
             explosions.push(explosion);
-            power += block.power;
-            score += block.power;
+            game_state.power += block.power;
+            game_state.score += block.power;
             block.power = -1;
           }
           block.bomb = true;
